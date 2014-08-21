@@ -45,7 +45,7 @@ module DataShift
         # In >= 1.1.0 Image moved to master Variant from Product so no association called Images on Product anymore
         
         # Non Product/database fields we can still  process
-        @we_can_process_these_anyway =  ['images',  "variant_price", "variant_sku"]
+        @we_can_process_these_anyway =  ['images',  "variant_price", "variant_sku", "variant_height", "variant_weight", "variant_width", "variant_depth", "variant_cost_price","variant_pack_height", "variant_pack_weight", "variant_pack_width", "variant_pack_length" ]
           
         # In >= 1.3.0 price moved to master Variant from Product so no association called Price on Product anymore
         # taking care of it here, means users can still simply just include a price column
@@ -96,16 +96,21 @@ def process(method_detail, value)
       add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object )
 
     elsif(current_method_detail.operator?('variant_price') && current_value)
-
+      p "PRICE"
       if(@load_object.variants.size > 0)
-
+         p "PRICE2"
+         p current_value.to_s
+         p Delimiters::multi_assoc_delim
+         p (current_value.to_s.include?(Delimiters::multi_assoc_delim))
         if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
-
+          p "PRICE3"
           # Check if we processed Option Types and assign  per option
           values = current_value.to_s.split(Delimiters::multi_assoc_delim)
 
           if(@load_object.variants.size == values.size)
+            p "Price4"
             @load_object.variants.each_with_index do |v, i|
+              p "VariantPrice#{values[i].to_f}"
               v.price = values[i].to_f
               v.recalculate = true
             end
@@ -139,7 +144,7 @@ def process(method_detail, value)
       else
         super
       end
-
+    #variant_height
     elsif(current_method_detail.operator?('variant_height') && current_value)
 
       if(@load_object.variants.size > 0)
@@ -159,6 +164,152 @@ def process(method_detail, value)
       else
         super
       end
+    # variant_weight
+    elsif(current_method_detail.operator?('variant_weight') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.weight = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+    #variant_width
+    elsif(current_method_detail.operator?('variant_width') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.width = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+
+     #variant_depth
+    elsif(current_method_detail.operator?('variant_depth') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.depth = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+
+      #variant_pack_height
+    elsif(current_method_detail.operator?('variant_pack_height') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.pack_height = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+
+      #variant_pack_depth
+    elsif(current_method_detail.operator?('variant_pack_length') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.pack_length = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+
+      #variant_pack_weight
+    elsif(current_method_detail.operator?('variant_pack_weight') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.pack_weight = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+    #variant_pack_width
+    elsif(current_method_detail.operator?('variant_pack_width') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.pack_width = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
+          end
+        end
+
+      else
+        super
+      end
+
+
 
     elsif(current_value && (current_method_detail.operator?('count_on_hand') || current_method_detail.operator?('on_hand')) )
 
@@ -449,3 +600,4 @@ def process(method_detail, value)
     end
   end
 end
+

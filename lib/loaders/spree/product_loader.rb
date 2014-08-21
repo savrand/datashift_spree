@@ -66,129 +66,152 @@ module DataShift
       # Method map represents a column from a file and it's correlated Product association.
       # Value string which may contain multiple values for a collection (has_many) association.
       #
-      def process(method_detail, value)  
+def process(method_detail, value)
 
-        raise ProductLoadError.new("Cannot process #{value} NO details found to assign to") unless(method_detail)
-          
-        # TODO - start supporting assigning extra data via current_attribute_hash
-        current_value, current_attribute_hash = @populator.prepare_data(method_detail, value)
-         
-        current_method_detail = method_detail
-       
-        logger.debug "Processing value: [#{current_value}]"
-        
-        # Special cases for Products, generally where a simple one stage lookup won't suffice
-        # otherwise simply use default processing from base class
-        if(current_value && (current_method_detail.operator?('variants') || current_method_detail.operator?('option_types')) )
+    raise ProductLoadError.new("Cannot process #{value} NO details found to assign to") unless(method_detail)
 
-          add_options_variants
+    # TODO - start supporting assigning extra data via current_attribute_hash
+    current_value, current_attribute_hash = @populator.prepare_data(method_detail, value)
 
-        elsif(current_method_detail.operator?('taxons') && current_value)
+    current_method_detail = method_detail
 
-          add_taxons
+    logger.debug "Processing value: [#{current_value}]"
 
-        elsif(current_method_detail.operator?('product_properties') && current_value)
+    # Special cases for Products, generally where a simple one stage lookup won't suffice
+    # otherwise simply use default processing from base class
+    if(current_value && (current_method_detail.operator?('variants') || current_method_detail.operator?('option_types')) )
 
-          add_properties
+      add_options_variants
 
-        elsif(current_method_detail.operator?('images') && current_value)
+    elsif(current_method_detail.operator?('taxons') && current_value)
 
-          add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object )
+      add_taxons
 
-        elsif(current_method_detail.operator?('variant_price') && current_value)
+    elsif(current_method_detail.operator?('product_properties') && current_value)
 
-          if(@load_object.variants.size > 0)
+      add_properties
 
-            if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+    elsif(current_method_detail.operator?('images') && current_value)
 
-              # Check if we processed Option Types and assign  per option
-              values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+      add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object )
 
-              if(@load_object.variants.size == values.size)
-                @load_object.variants.each_with_index {|v, i| v.price = values[i].to_f }
-                @load_object.save
-              else
-                puts "WARNING: Price entries did not match number of Variants - None Set"
-              end
+    elsif(current_method_detail.operator?('variant_price') && current_value)
+
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index do |v, i|
+              v.price = values[i].to_f
+              v.recalculate = true
             end
-
+            p "ALLLLLLLLLLLLLLL"
+            @load_object.save
           else
-            super
+            puts "WARNING: Price entries did not match number of Variants - None Set"
           end
-          
-        elsif(current_method_detail.operator?('variant_sku') && current_value)
+        end
 
-          if(@load_object.variants.size > 0)
+      else
+        super
+      end
 
-            if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+    elsif(current_method_detail.operator?('variant_sku') && current_value)
 
-              # Check if we processed Option Types and assign  per option
-              values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+      if(@load_object.variants.size > 0)
 
-              if(@load_object.variants.size == values.size)
-                @load_object.variants.each_with_index {|v, i| v.sku = values[i].to_s }
-                @load_object.save
-              else
-                puts "WARNING: SKU entries did not match number of Variants - None Set"
-              end
-            end
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
 
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.sku = values[i] }
           else
-            super
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
           end
-          
-        elsif(current_value && (current_method_detail.operator?('count_on_hand') || current_method_detail.operator?('on_hand')) )
+        end
 
-          # CURRENTLY BROKEN FOR Spree 2.2 - New Stock management : 
-          # http://guides.spreecommerce.com/developer/inventory.html
-          
-          logger.warn("NO STOCK SET - count_on_hand BROKEN - needs updating for new StockManagement in Spree >= 2.2")
-          return
+      else
+        super
+      end
 
-          # Unless we can save here, in danger of count_on_hand getting wiped out.
-          # If we set (on_hand or count_on_hand) on an unsaved object, during next subsequent save
-          # looks like some validation code or something calls Variant.on_hand= with 0
-          # If we save first, then our values seem to stick
+    elsif(current_method_detail.operator?('variant_height') && current_value)
 
-          # TODO smart column ordering to ensure always valid - if we always make it very last column might not get wiped ?
-          #
-          save_if_new
+      if(@load_object.variants.size > 0)
 
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
 
-          # Spree has some stock management stuff going on, so dont usually assign to column vut use
-          # on_hand and on_hand=
-          if(@load_object.variants.size > 0)
+          # Check if we processed Option Types and assign  per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
 
-            if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
-
-              #puts "DEBUG: COUNT_ON_HAND PER VARIANT",current_value.is_a?(String),
-
-              # Check if we processed Option Types and assign count per option
-              values = current_value.to_s.split(Delimiters::multi_assoc_delim)
-
-              if(@load_object.variants.size == values.size)
-                @load_object.variants.each_with_index {|v, i| v.on_hand = values[i].to_i }
-                @load_object.save
-              else
-                puts "WARNING: Count on hand entries did not match number of Variants - None Set"
-              end
-            end
-
-            # Can only set count on hand on Product if no Variants exist, else model throws
-
-          elsif(@load_object.variants.size == 0)
-            if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
-              puts "WARNING: Multiple count_on_hand values specified but no Variants/OptionTypes created"
-              load_object.on_hand = current_value.to_s.split(Delimiters::multi_assoc_delim).first.to_i
-            else
-              load_object.on_hand = current_value.to_i
-            end
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.height = values[i].to_f }
+          else
+            puts "WARNING: SKU entries did not match number of Variants - None Set"
           end
+        end
 
+      else
+        super
+      end
+
+    elsif(current_value && (current_method_detail.operator?('count_on_hand') || current_method_detail.operator?('on_hand')) )
+
+      # CURRENTLY BROKEN FOR Spree 2.2 - New Stock management :
+      # http://guides.spreecommerce.com/developer/inventory.html
+
+      logger.warn("NO STOCK SET - count_on_hand BROKEN - needs updating for new StockManagement in Spree >= 2.2")
+      return
+
+      # Unless we can save here, in danger of count_on_hand getting wiped out.
+      # If we set (on_hand or count_on_hand) on an unsaved object, during next subsequent save
+      # looks like some validation code or something calls Variant.on_hand= with 0
+      # If we save first, then our values seem to stick
+
+      # TODO smart column ordering to ensure always valid - if we always make it very last column might not get wiped ?
+      #
+      save_if_new
+
+
+      # Spree has some stock management stuff going on, so dont usually assign to column vut use
+      # on_hand and on_hand=
+      if(@load_object.variants.size > 0)
+
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+
+          #puts "DEBUG: COUNT_ON_HAND PER VARIANT",current_value.is_a?(String),
+
+          # Check if we processed Option Types and assign count per option
+          values = current_value.to_s.split(Delimiters::multi_assoc_delim)
+
+          if(@load_object.variants.size == values.size)
+            @load_object.variants.each_with_index {|v, i| v.on_hand = values[i].to_i }
+            @load_object.save
+          else
+            puts "WARNING: Count on hand entries did not match number of Variants - None Set"
+          end
+        end
+
+        # Can only set count on hand on Product if no Variants exist, else model throws
+
+      elsif(@load_object.variants.size == 0)
+        if(current_value.to_s.include?(Delimiters::multi_assoc_delim))
+          puts "WARNING: Multiple count_on_hand values specified but no Variants/OptionTypes created"
+          load_object.on_hand = current_value.to_s.split(Delimiters::multi_assoc_delim).first.to_i
         else
-          super
+          load_object.on_hand = current_value.to_i
         end
       end
+
+    else
+      super
+    end
+  end
 
       private
 

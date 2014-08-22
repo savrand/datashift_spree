@@ -45,7 +45,7 @@ module DataShift
         # In >= 1.1.0 Image moved to master Variant from Product so no association called Images on Product anymore
         
         # Non Product/database fields we can still  process
-        @we_can_process_these_anyway =  ['images',  "variant_price", "variant_sku", "variant_height", "variant_weight", "variant_width", "variant_depth", "variant_cost_price","variant_pack_height", "variant_pack_weight", "variant_pack_width", "variant_pack_length" ]
+        @we_can_process_these_anyway =  ['images',  "variant_price", "variant_sku", "variant_height", "variant_weight", "variant_width", "variant_depth", "variant_cost_price","variant_pack_height", "variant_pack_weight", "variant_pack_width", "variant_pack_length", "variant_images" ]
           
         # In >= 1.3.0 price moved to master Variant from Product so no association called Price on Product anymore
         # taking care of it here, means users can still simply just include a price column
@@ -92,7 +92,6 @@ def process(method_detail, value)
       add_properties
 
     elsif(current_method_detail.operator?('images') && current_value)
-
       add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object )
 
     elsif(current_method_detail.operator?('variant_price') && current_value)
@@ -307,6 +306,19 @@ def process(method_detail, value)
 
       else
         super
+      end
+
+    elsif(current_method_detail.operator?('variant_images') && current_value)
+      p "LoadVariantImagesstart"
+      if(@load_object.variants.size > 0)
+          p "LoadVariantImages"
+          p current_value
+          vaiants_images = current_value.split("|")
+          if(@load_object.variants.size == vaiants_images.size)
+            @load_object.variants.each_with_index do |v,i|
+              add_images(v, vaiants_images[i].split(">"))
+            end
+          end
       end
 
 
@@ -600,4 +612,5 @@ def process(method_detail, value)
     end
   end
 end
+
 

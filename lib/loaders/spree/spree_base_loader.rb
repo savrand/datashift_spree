@@ -66,16 +66,15 @@ module DataShift
     #
     #   Example => path_1{:alt => text}|path_2{:alt => more alt blah blah, :position => 5}|path_3{:alt => the alt text for this path}
     #
-    def add_images( record )
+    def add_images( record, variant_image = nil )
 
       #save_if_new
-
       # different versions have moved images around from Prod to Variant
       owner = DataShift::SpreeHelper::get_image_owner(record)
+      images = variant_image.present? ? variant_image : get_each_assoc
+      images.each do |image|
 
-      get_each_assoc.each do |image|
-
-        logger.debug("Processing IMAGE from #{image.inspect}")
+        p ("Processing IMAGE from #{image.inspect}")
              
         #TODO - make this Delimiters::attributes_start_delim and support {alt=> 'blah, :position => 2 etc}
 

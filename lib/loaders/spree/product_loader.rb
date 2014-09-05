@@ -80,7 +80,8 @@ def process(method_detail, value)
     # Special cases for Products, generally where a simple one stage lookup won't suffice
     # otherwise simply use default processing from base class
     if(current_value && (current_method_detail.operator?('variants') || current_method_detail.operator?('option_types')) )
-
+      p "Processing value: [#{current_value}]"
+      p "Processing value: [#{current_method_detail}]"
       add_options_variants
 
     elsif(current_method_detail.operator?('taxons') && current_value)
@@ -95,6 +96,7 @@ def process(method_detail, value)
       add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object )
 
     elsif(current_method_detail.operator?('variant_price') && current_value)
+      p @load_object.variants.count
       p "PRICE"
       if(@load_object.variants.size > 0)
          p "PRICE2"
@@ -405,7 +407,7 @@ def process(method_detail, value)
         # example : mime_type:jpeg;print_type:black_white|mime_type:jpeg|mime_type:png, PDF;print_type:colour
 
         variants = get_each_assoc
-
+        p "add_options_variants #{variants.inspect}"
         logger.info "add_options_variants #{variants.inspect}"
         
         # example line becomes :  
@@ -415,9 +417,13 @@ def process(method_detail, value)
 
         variants.each do |per_variant|
 
-          option_types = per_variant.split(Delimiters::multi_facet_delim)    # => [mime_type:jpeg, print_type:black_white]
-
-          logger.info "add_options_variants #{option_types.inspect}"
+          opt_types_with_sku = per_variant.split(">")
+          p "per_variant#{per_variant}"
+          p "opt_types_with_sku#{opt_types_with_sku}"
+          option_types = opt_types_with_sku.first.split(Delimiters::multi_facet_delim)    # => [mime_type:jpeg, print_type:black_white]
+          variant_sku = opt_types_with_sku.last.split(Delimiters::multi_facet_delim)
+          p "add_opt_type#{option_types}"
+          p "variant_sku#{variant_sku.first}"
            
           optiontype_vlist_map = {}
 
@@ -491,14 +497,15 @@ def process(method_detail, value)
               logger.info("Creating Variant from OptionValue(s) #{ov_list.collect(&:name).inspect}")
               
               i = @load_object.variants.size + 1
-
+              p "ITS FIRST?#{@load_object.variants.count}"
               # This one line seems to works for 1.1.0 - 3.2 but not 1.0.0 - 3.1 ??
 							if(SpreeHelper::version.to_f >= 1.1)
-							  variant = @load_object.variants.create( :sku => "#{@load_object.sku}_#{i}", :price => @load_object.price, :weight => @load_object.weight, :height => @load_object.height, :width => @load_object.width, :depth => @load_object.depth)
-							else
-							  variant = @@variant_klass.create( :product => @load_object, :sku => "#{@load_object.sku}_#{i}", :price => @load_object.price)
+							  variant = @load_object.variants.create( :sku => variant_sku.first, :price => @load_object.price, :weight => @load_object.weight, :height => @load_object.height, :width => @load_object.width, :depth => @load_object.depth) unless variant = Spree::Variant.find_by_sku_and_is_master(variant_sku.first, false)
+              else
+							  variant = @@variant_klass.create( :product => @load_object, :sku => "#{@load_object.sku}", :price => @load_object.price)
 							end
-
+              variant.option_values.destroy_all
+              variant.images.destroy_all
               variant.option_values << ov_list if(variant)    
             end
           end
@@ -612,5 +619,6 @@ def process(method_detail, value)
     end
   end
 end
+
 
 

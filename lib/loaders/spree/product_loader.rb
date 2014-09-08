@@ -93,7 +93,7 @@ def process(method_detail, value)
       add_properties
 
     elsif(current_method_detail.operator?('images') && current_value)
-      add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object )
+      add_images( (SpreeHelper::version.to_f > 1) ? @load_object.master : @load_object ) unless @load_object.images.present?
 
     elsif(current_method_detail.operator?('variant_price') && current_value)
       p @load_object.variants.count
@@ -318,7 +318,7 @@ def process(method_detail, value)
           vaiants_images = current_value.split("|")
           if(@load_object.variants.size == vaiants_images.size)
             @load_object.variants.each_with_index do |v,i|
-              add_images(v, vaiants_images[i].split(">"))
+              add_images(v, vaiants_images[i].split(">")) unless v.images.present?
             end
           end
       end
@@ -505,7 +505,7 @@ def process(method_detail, value)
 							  variant = @@variant_klass.create( :product => @load_object, :sku => "#{@load_object.sku}", :price => @load_object.price)
 							end
               variant.option_values.destroy_all
-              variant.images.destroy_all
+              #variant.images.destroy_all
               variant.option_values << ov_list if(variant)    
             end
           end
@@ -619,6 +619,7 @@ def process(method_detail, value)
     end
   end
 end
+
 
 
 
